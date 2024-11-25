@@ -19,7 +19,7 @@
             background-size: cover;
             border: 2px solid #fff;
         }
-        #share-btn {
+        button {
             margin: 10px;
             padding: 10px 20px;
             font-size: 18px;
@@ -33,32 +33,41 @@
 </head>
 <body>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <button id="start-btn">Iniciar</button>
+    <button id="reset-btn" style="display: none;">Reiniciar</button>
     <button id="share-btn" style="display: none;">Compartilhar Pontuação</button>
 
     <script src="https://telegram.org/js/games.js"></script>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('start-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const shareBtn = document.getElementById('share-btn');
 
         const bullImage = new Image();
         bullImage.src = "bull.png"; // Touro com transparência
 
-        let bullX = canvas.width / 2;
-        let bullY = canvas.height / 2;
-        let velocityX = 5;
-        let velocityY = -5;
-        let rotation = 0;
-        let score = 0;
+        let bullX, bullY, velocityX, tiltAngle, tiltDirection, score;
+        let gameActive = false;
 
-        let gameActive = true;
+        function initializeGame() {
+            bullX = canvas.width / 2;
+            bullY = canvas.height / 3;
+            velocityX = 5; // Velocidade horizontal
+            tiltAngle = 0; // Ângulo de inclinação
+            tiltDirection = 1; // Direção da inclinação
+            score = 0;
+        }
 
         function drawBull() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            // Salva o contexto para aplicar transformações
             ctx.save();
             ctx.translate(bullX, bullY);
-            ctx.rotate(rotation);
-            ctx.drawImage(bullImage, -50, -50, 100, 100); // Centraliza o touro
+            ctx.rotate(tiltAngle); // Inclinação do touro
+            ctx.drawImage(bullImage, -150, -150, 300, 300); // Tamanho ajustado
             ctx.restore();
 
             updateMovement();
@@ -67,33 +76,62 @@
         function updateMovement() {
             if (!gameActive) return;
 
+            // Movimento horizontal
             bullX += velocityX;
-            bullY += velocityY;
-            rotation += 0.1;
 
-            // Rebater nas bordas
-            if (bullX < 50 || bullX > canvas.width - 50) velocityX *= -1;
-            if (bullY < 50 || bullY > canvas.height - 50) velocityY *= -1;
+            // Alterna a inclinação do touro
+            tiltAngle += tiltDirection * 0.05;
+            if (tiltAngle > 0.3 || tiltAngle < -0.3) tiltDirection *= -1;
 
-            // Verificar se caiu
-            if (bullY > canvas.height - 50) endGame();
+            // Rebater nas bordas horizontais
+            if (bullX <= 150 || bullX >= canvas.width - 150) {
+                velocityX *= -1; // Inverte a direção
+            }
 
-            score += 1; // Incrementa pontuação
+            // Simula queda (touro toca o chão)
+            if (bullY >= canvas.height - 150) {
+                endGame();
+            }
+
+            score += 1; // Incrementa a pontuação
             requestAnimationFrame(drawBull);
+        }
+
+        function startGame() {
+            initializeGame();
+            gameActive = true;
+            startBtn.style.display = "none";
+            resetBtn.style.display = "block";
+            shareBtn.style.display = "none";
+            drawBull();
         }
 
         function endGame() {
             gameActive = false;
-            alert(`Você perdeu! Pontuação: ${score}`);
-            document.getElementById('share-btn').style.display = 'block';
+            alert(`Você caiu! Pontuação: ${score}`);
+            resetBtn.style.display = "block";
+            shareBtn.style.display = "block";
+        }
+
+        function resetGame() {
+            initializeGame();
+            gameActive = false;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            startBtn.style.display = "block";
+            resetBtn.style.display = "none";
+            shareBtn.style.display = "none";
         }
 
         // Compartilhar pontuação no Telegram
-        document.getElementById('share-btn').onclick = () => {
+        shareBtn.onclick = () => {
             TelegramGameProxy.shareScore();
         };
 
-        bullImage.onload = drawBull; // Inicia o jogo ao carregar a imagem
+        // Botões de controle
+        startBtn.onclick = startGame;
+        resetBtn.onclick = resetGame;
+
+        bullImage.onload = resetGame; // Mostra o estado inicial
     </script>
 </body>
 </html>
