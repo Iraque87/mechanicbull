@@ -53,7 +53,9 @@
         let bullX = canvas.width / 2;
         let bullY = canvas.height / 2;
         const bullRadius = 30;
-        const speed = 4;
+        let speedX = 4; // Velocidade inicial
+        let speedY = 4; // Velocidade inicial
+        let difficulty = 1; // Dificuldade que aumenta ao longo do tempo
 
         const bullImage = new Image();
         bullImage.src = "A_cartoon-style_illustration_of_a_mechanical_bull_.png"; // Atualize o caminho conforme necessário
@@ -72,15 +74,17 @@
         function moveBull() {
             if (!gameActive) return;
 
-            // Movimento aleatório
-            bullX += (Math.random() - 0.5) * speed * 2;
-            bullY += (Math.random() - 0.5) * speed * 2;
+            // Movimento do touro
+            bullX += speedX * difficulty;
+            bullY += speedY * difficulty;
 
-            // Garantir que o touro fique dentro dos limites do canvas
-            if (bullX < bullRadius) bullX = bullRadius;
-            if (bullX > canvas.width - bullRadius) bullX = canvas.width - bullRadius;
-            if (bullY < bullRadius) bullY = bullRadius;
-            if (bullY > canvas.height - bullRadius) bullY = canvas.height - bullRadius;
+            // Rebater nas bordas
+            if (bullX <= bullRadius || bullX >= canvas.width - bullRadius) {
+                speedX = -speedX;
+            }
+            if (bullY <= bullRadius || bullY >= canvas.height - bullRadius) {
+                speedY = -speedY;
+            }
 
             drawBull();
         }
@@ -97,11 +101,12 @@
             );
 
             if (distance <= bullRadius) {
-                // Clique no touro - aumenta o tempo
+                // Clique correto: aumenta o tempo e a dificuldade
                 time += 1;
+                difficulty += 0.1; // Aumenta a dificuldade gradualmente
                 scoreDisplay.innerText = `Tempo: ${time.toFixed(1)} segundos`;
             } else {
-                // Clique errado - termina o jogo
+                // Clique errado: fim de jogo
                 endGame();
             }
         });
@@ -111,13 +116,19 @@
 
             time += 0.1;
             scoreDisplay.innerText = `Tempo: ${time.toFixed(1)} segundos`;
+
+            // Terminar o jogo se o tempo acabar
+            if (time <= 0) {
+                endGame();
+            }
         }
 
         function startGame() {
             gameActive = true;
-            time = 0;
+            time = 10; // Tempo inicial
             bullX = canvas.width / 2;
             bullY = canvas.height / 2;
+            difficulty = 1; // Reinicia a dificuldade
 
             startBtn.style.display = "none";
             resetBtn.style.display = "inline-block";
