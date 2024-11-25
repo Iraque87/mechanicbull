@@ -7,18 +7,19 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
             margin: 0;
             padding: 0;
             background-color: #f7f7f7;
+            overflow: hidden;
         }
         canvas {
             display: block;
             margin: 20px auto;
-            background-color: #222;
+            background-image: url('background.png'); /* Fundo estilizado */
+            background-size: cover;
             border: 2px solid #fff;
         }
-        #start-btn, #reset-btn {
+        #share-btn {
             margin: 10px;
             padding: 10px 20px;
             font-size: 18px;
@@ -31,140 +32,68 @@
     </style>
 </head>
 <body>
-    <h1>Simulador de Montaria em Touro Mecânico</h1>
-    <canvas id="gameCanvas" width="400" height="400"></canvas>
-    <button id="start-btn">Iniciar</button>
-    <button id="reset-btn" style="display:none;">Reiniciar</button>
-    <p id="score">Tempo: 0 segundos</p>
-    <p id="record">Recorde: 0 segundos</p>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <button id="share-btn" style="display: none;">Compartilhar Pontuação</button>
 
+    <script src="https://telegram.org/js/games.js"></script>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const startBtn = document.getElementById('start-btn');
-        const resetBtn = document.getElementById('reset-btn');
-        const scoreDisplay = document.getElementById('score');
-        const recordDisplay = document.getElementById('record');
-
-        let gameActive = false;
-        let time = 0;
-        let record = 0;
-        let interval;
-        let bullX = canvas.width / 2;
-        let bullY = canvas.height / 2;
-        const bullRadius = 30;
-        let speedX = 4; // Velocidade inicial
-        let speedY = 4; // Velocidade inicial
-        let difficulty = 1; // Dificuldade que aumenta ao longo do tempo
 
         const bullImage = new Image();
-        bullImage.src = "A_cartoon-style_illustration_of_a_mechanical_bull_.png"; // Atualize o caminho conforme necessário
+        bullImage.src = "bull.png"; // Touro com transparência
+
+        let bullX = canvas.width / 2;
+        let bullY = canvas.height / 2;
+        let velocityX = 5;
+        let velocityY = -5;
+        let rotation = 0;
+        let score = 0;
+
+        let gameActive = true;
 
         function drawBull() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(
-                bullImage,
-                bullX - bullRadius,
-                bullY - bullRadius,
-                bullRadius * 2,
-                bullRadius * 2
-            );
+
+            ctx.save();
+            ctx.translate(bullX, bullY);
+            ctx.rotate(rotation);
+            ctx.drawImage(bullImage, -50, -50, 100, 100); // Centraliza o touro
+            ctx.restore();
+
+            updateMovement();
         }
 
-        function moveBull() {
+        function updateMovement() {
             if (!gameActive) return;
 
-            // Movimento do touro
-            bullX += speedX * difficulty;
-            bullY += speedY * difficulty;
+            bullX += velocityX;
+            bullY += velocityY;
+            rotation += 0.1;
 
             // Rebater nas bordas
-            if (bullX <= bullRadius || bullX >= canvas.width - bullRadius) {
-                speedX = -speedX;
-            }
-            if (bullY <= bullRadius || bullY >= canvas.height - bullRadius) {
-                speedY = -speedY;
-            }
+            if (bullX < 50 || bullX > canvas.width - 50) velocityX *= -1;
+            if (bullY < 50 || bullY > canvas.height - 50) velocityY *= -1;
 
-            drawBull();
-        }
+            // Verificar se caiu
+            if (bullY > canvas.height - 50) endGame();
 
-        canvas.addEventListener("click", (event) => {
-            if (!gameActive) return;
-
-            const rect = canvas.getBoundingClientRect();
-            const clickX = event.clientX - rect.left;
-            const clickY = event.clientY - rect.top;
-
-            const distance = Math.sqrt(
-                (clickX - bullX) ** 2 + (clickY - bullY) ** 2
-            );
-
-            if (distance <= bullRadius) {
-                // Clique correto: aumenta o tempo e a dificuldade
-                time += 1;
-                difficulty += 0.1; // Aumenta a dificuldade gradualmente
-                scoreDisplay.innerText = `Tempo: ${time.toFixed(1)} segundos`;
-            } else {
-                // Clique errado: fim de jogo
-                endGame();
-            }
-        });
-
-        function updateTimer() {
-            if (!gameActive) return;
-
-            time += 0.1;
-            scoreDisplay.innerText = `Tempo: ${time.toFixed(1)} segundos`;
-
-            // Terminar o jogo se o tempo acabar
-            if (time <= 0) {
-                endGame();
-            }
-        }
-
-        function startGame() {
-            gameActive = true;
-            time = 10; // Tempo inicial
-            bullX = canvas.width / 2;
-            bullY = canvas.height / 2;
-            difficulty = 1; // Reinicia a dificuldade
-
-            startBtn.style.display = "none";
-            resetBtn.style.display = "inline-block";
-
-            interval = setInterval(() => {
-                moveBull();
-                updateTimer();
-            }, 100);
+            score += 1; // Incrementa pontuação
+            requestAnimationFrame(drawBull);
         }
 
         function endGame() {
             gameActive = false;
-            clearInterval(interval);
-
-            if (time > record) {
-                record = time;
-                recordDisplay.innerText = `Recorde: ${time.toFixed(1)} segundos`;
-            }
-
-            alert(`Você caiu! Tempo total: ${time.toFixed(1)} segundos.`);
+            alert(`Você perdeu! Pontuação: ${score}`);
+            document.getElementById('share-btn').style.display = 'block';
         }
 
-        function resetGame() {
-            gameActive = false;
-            time = 0;
-            scoreDisplay.innerText = "Tempo: 0 segundos";
-            startBtn.style.display = "inline-block";
-            resetBtn.style.display = "none";
-            clearInterval(interval);
-            drawBull();
-        }
+        // Compartilhar pontuação no Telegram
+        document.getElementById('share-btn').onclick = () => {
+            TelegramGameProxy.shareScore();
+        };
 
-        startBtn.addEventListener('click', startGame);
-        resetBtn.addEventListener('click', resetGame);
-
-        bullImage.onload = () => drawBull(); // Carrega o touro ao iniciar
+        bullImage.onload = drawBull; // Inicia o jogo ao carregar a imagem
     </script>
 </body>
 </html>
