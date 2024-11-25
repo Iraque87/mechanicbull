@@ -53,24 +53,41 @@
         let bullX = canvas.width / 2;
         let bullY = canvas.height / 2;
         const bullRadius = 30;
+        const speed = 4;
 
         const bullImage = new Image();
         bullImage.src = "A_cartoon-style_illustration_of_a_mechanical_bull_.png"; // Atualize o caminho conforme necessário
 
         function drawBull() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (gameActive) {
-                ctx.drawImage(
-                    bullImage,
-                    bullX - bullRadius,
-                    bullY - bullRadius,
-                    bullRadius * 2,
-                    bullRadius * 2
-                );
-            }
+            ctx.drawImage(
+                bullImage,
+                bullX - bullRadius,
+                bullY - bullRadius,
+                bullRadius * 2,
+                bullRadius * 2
+            );
+        }
+
+        function moveBull() {
+            if (!gameActive) return;
+
+            // Movimento aleatório
+            bullX += (Math.random() - 0.5) * speed * 2;
+            bullY += (Math.random() - 0.5) * speed * 2;
+
+            // Garantir que o touro fique dentro dos limites do canvas
+            if (bullX < bullRadius) bullX = bullRadius;
+            if (bullX > canvas.width - bullRadius) bullX = canvas.width - bullRadius;
+            if (bullY < bullRadius) bullY = bullRadius;
+            if (bullY > canvas.height - bullRadius) bullY = canvas.height - bullRadius;
+
+            drawBull();
         }
 
         canvas.addEventListener("click", (event) => {
+            if (!gameActive) return;
+
             const rect = canvas.getBoundingClientRect();
             const clickX = event.clientX - rect.left;
             const clickY = event.clientY - rect.top;
@@ -80,32 +97,33 @@
             );
 
             if (distance <= bullRadius) {
-                // Continue o jogo
-                alert("Você está montado no touro!");
+                // Clique no touro - aumenta o tempo
+                time += 1;
+                scoreDisplay.innerText = `Tempo: ${time.toFixed(1)} segundos`;
             } else {
+                // Clique errado - termina o jogo
                 endGame();
             }
         });
 
         function updateTimer() {
-            time += 0.1; // Increment time by 0.1 seconds
-            scoreDisplay.innerText = `Tempo: ${time.toFixed(1)} segundos`;
+            if (!gameActive) return;
 
-            // End game if time runs out (you can adjust logic here)
-            if (!gameActive) {
-                clearInterval(interval);
-                return;
-            }
+            time += 0.1;
+            scoreDisplay.innerText = `Tempo: ${time.toFixed(1)} segundos`;
         }
 
         function startGame() {
             gameActive = true;
             time = 0;
+            bullX = canvas.width / 2;
+            bullY = canvas.height / 2;
+
             startBtn.style.display = "none";
             resetBtn.style.display = "inline-block";
 
             interval = setInterval(() => {
-                drawBull();
+                moveBull();
                 updateTimer();
             }, 100);
         }
@@ -124,19 +142,18 @@
 
         function resetGame() {
             gameActive = false;
-            bullX = canvas.width / 2;
-            bullY = canvas.height / 2;
             time = 0;
             scoreDisplay.innerText = "Tempo: 0 segundos";
-            drawBull();
             startBtn.style.display = "inline-block";
             resetBtn.style.display = "none";
+            clearInterval(interval);
+            drawBull();
         }
 
         startBtn.addEventListener('click', startGame);
         resetBtn.addEventListener('click', resetGame);
 
-        bullImage.onload = () => drawBull(); // Draw initial bull when image is loaded
+        bullImage.onload = () => drawBull(); // Carrega o touro ao iniciar
     </script>
 </body>
 </html>
