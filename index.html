@@ -49,47 +49,58 @@
         let gameActive = false;
         let time = 0;
         let record = 0;
-        let shakeIntensity = 5;
         let interval;
         let bullX = canvas.width / 2;
         let bullY = canvas.height / 2;
+        const bullRadius = 30;
+
+        const bullImage = new Image();
+        bullImage.src = "A_cartoon-style_illustration_of_a_mechanical_bull_.png"; // Atualize o caminho conforme necessário
 
         function drawBull() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "brown";
-            ctx.beginPath();
-            ctx.arc(bullX, bullY, 30, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Bull "shaking" animation
             if (gameActive) {
-                bullX += Math.random() * shakeIntensity - shakeIntensity / 2;
-                bullY += Math.random() * shakeIntensity - shakeIntensity / 2;
+                ctx.drawImage(
+                    bullImage,
+                    bullX - bullRadius,
+                    bullY - bullRadius,
+                    bullRadius * 2,
+                    bullRadius * 2
+                );
             }
         }
+
+        canvas.addEventListener("click", (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const clickY = event.clientY - rect.top;
+
+            const distance = Math.sqrt(
+                (clickX - bullX) ** 2 + (clickY - bullY) ** 2
+            );
+
+            if (distance <= bullRadius) {
+                // Continue o jogo
+                alert("Você está montado no touro!");
+            } else {
+                endGame();
+            }
+        });
 
         function updateTimer() {
             time += 0.1; // Increment time by 0.1 seconds
             scoreDisplay.innerText = `Tempo: ${time.toFixed(1)} segundos`;
 
-            // Increase difficulty over time
-            if (time % 5 === 0 && shakeIntensity < 20) {
-                shakeIntensity += 1;
-            }
-
-            // End game if the bull moves too far
-            if (
-                bullX < 0 || bullX > canvas.width ||
-                bullY < 0 || bullY > canvas.height
-            ) {
-                endGame();
+            // End game if time runs out (you can adjust logic here)
+            if (!gameActive) {
+                clearInterval(interval);
+                return;
             }
         }
 
         function startGame() {
             gameActive = true;
             time = 0;
-            shakeIntensity = 5;
             startBtn.style.display = "none";
             resetBtn.style.display = "inline-block";
 
@@ -112,17 +123,20 @@
         }
 
         function resetGame() {
+            gameActive = false;
             bullX = canvas.width / 2;
             bullY = canvas.height / 2;
+            time = 0;
+            scoreDisplay.innerText = "Tempo: 0 segundos";
+            drawBull();
             startBtn.style.display = "inline-block";
             resetBtn.style.display = "none";
-            drawBull();
         }
 
         startBtn.addEventListener('click', startGame);
         resetBtn.addEventListener('click', resetGame);
 
-        drawBull(); // Initial draw
+        bullImage.onload = () => drawBull(); // Draw initial bull when image is loaded
     </script>
 </body>
 </html>
